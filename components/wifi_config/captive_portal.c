@@ -36,7 +36,7 @@
  #include "http_server.h"
  #include "dns_server.h"
 
- #define CAPTIVE_PORTAL_NAMESPACE "captive_portal"
+#define CAPTIVE_PORTAL_NAMESPACE "captive_portal"
  #define CAPTIVE_PORTAL_AP_IP "192.168.4.1"
  static const char *TAG = "captive_portal";
  static captive_portal_event_cb_t g_callback = NULL;
@@ -66,7 +66,7 @@ static void start_mdns_service(const char* hostname) {
 
 void wifi_config_set(const char *ssid, const char *password) {
         nvs_handle_t nvs;
-        nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &nvs);
+        nvs_open(CAPTIVE_PORTAL_NAMESPACE, NVS_READWRITE, &nvs);
         nvs_set_str(nvs, "wifi_ssid", ssid);
         nvs_set_str(nvs, "wifi_password", password ? password : "");
         nvs_commit(nvs);
@@ -75,7 +75,7 @@ void wifi_config_set(const char *ssid, const char *password) {
 
 void wifi_config_get(char *ssid, size_t ssid_len, char *password, size_t pass_len) {
         nvs_handle_t nvs;
-        nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READONLY, &nvs);
+        nvs_open(CAPTIVE_PORTAL_NAMESPACE, NVS_READONLY, &nvs);
         size_t required = ssid_len;
         nvs_get_str(nvs, "wifi_ssid", ssid, &required);
         required = pass_len;
@@ -85,7 +85,7 @@ void wifi_config_get(char *ssid, size_t ssid_len, char *password, size_t pass_le
 
 void wifi_config_reset() {
         nvs_handle_t nvs;
-        nvs_open(WIFI_CONFIG_NAMESPACE, NVS_READWRITE, &nvs);
+        nvs_open(CAPTIVE_PORTAL_NAMESPACE, NVS_READWRITE, &nvs);
         nvs_erase_all(nvs);
         nvs_commit(nvs);
         nvs_close(nvs);
