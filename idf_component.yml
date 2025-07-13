@@ -9,6 +9,7 @@ issues: "https://github.com/AchimPieters/ESP32-captive_portal/issues"
 license: "MIT"
 dependencies:
   idf: ">=5.0"
+  espressif/mdns: "*"
 targets:
   - "esp32"
   - "esp32c2"
