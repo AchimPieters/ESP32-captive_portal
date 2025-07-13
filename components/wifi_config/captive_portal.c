@@ -39,7 +39,8 @@
 #define CAPTIVE_PORTAL_NAMESPACE "captive_portal"
  #define CAPTIVE_PORTAL_AP_IP "192.168.4.1"
  static const char *TAG = "captive_portal";
- static captive_portal_event_cb_t g_callback = NULL;
+// Callback provided by the application to report WiFi status changes
+static wifi_config_event_cb_t g_callback = NULL;
  static char g_ap_ssid[33] = "ESP32-Setup";
  static char g_ap_password[65] = {0};
  static TimerHandle_t wifi_check_timer = NULL;
