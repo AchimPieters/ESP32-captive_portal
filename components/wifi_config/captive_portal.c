@@ -154,7 +154,7 @@ static void check_wifi_status(TimerHandle_t xTimer) {
                 ap_config.ap.max_connection = 4;
                 esp_wifi_set_config(WIFI_IF_AP, &ap_config);
                 http_server_start();
-                dns_server_start(WIFI_CONFIG_AP_IP);
+                dns_server_start(CAPTIVE_PORTAL_AP_IP);
                 start_mdns_service("esp32-setup");
                 start_wifi_scan();
         }
