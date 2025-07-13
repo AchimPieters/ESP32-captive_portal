@@ -23,17 +23,17 @@
 
  #pragma once
 
- typedef enum {
-     CAPTIVE_PORTAL_EVENT_CONNECTED = 1,
-     CAPTIVE_PORTAL_EVENT_DISCONNECTED = 2,
- } captive_portal_event_t;
+typedef enum {
+    WIFI_CONFIG_EVENT_CONNECTED = 1,
+    WIFI_CONFIG_EVENT_DISCONNECTED = 2,
+} wifi_config_event_t;
 
- typedef void (*captive_portal_event_cb_t)(captive_portal_event_t event);
+typedef void (*wifi_config_event_cb_t)(wifi_config_event_t event);
 
- void captive_portal_init(const char *ap_ssid, const char *ap_password, captive_portal_event_cb_t cb);
- void captive_portal_reset();
- void captive_portal_get(char *ssid, size_t ssid_len, char *password, size_t pass_len);
- void captive_portal_set(const char *ssid, const char *password);
+void wifi_config_init(const char *ap_ssid, const char *ap_password, wifi_config_event_cb_t cb);
+void wifi_config_reset();
+void wifi_config_get(char *ssid, size_t ssid_len, char *password, size_t pass_len);
+void wifi_config_set(const char *ssid, const char *password);
 
  // Voor wifi scan in http_server
  typedef struct {
@@ -41,5 +41,5 @@
      int8_t rssi;
      uint8_t authmode;
  } scanned_ap_info_t;
- void captive_portal_get_scan_results(scanned_ap_info_t **list, size_t *count);
- const char* captive_portal_authmode_str(uint8_t authmode);
+void wifi_config_get_scan_results(scanned_ap_info_t **list, size_t *count);
+const char* wifi_config_authmode_str(uint8_t authmode);
