@@ -5,7 +5,7 @@ cmake_minimum_required(VERSION 3.16)
 # results in an error ("define_property command is not scriptable").  Only
 # include the ESP-IDF project infrastructure when this file is processed as the
 # top level project.
-if(NOT CMAKE_SCRIPT_MODE_FILE)
+if(CMAKE_SOURCE_DIR STREQUAL CMAKE_CURRENT_SOURCE_DIR)
     include($ENV{IDF_PATH}/tools/cmake/project.cmake)
     project(wifi_captive_portal)
 endif()
