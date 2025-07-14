@@ -21,29 +21,6 @@
    for more information visit https://www.studiopieters.nl
  **/
 
-#pragma once
-
-#include <stddef.h>   // voor size_t
-#include <stdint.h>   // voor int8_t en uint8_t
-
-typedef enum {
-    WIFI_CONFIG_EVENT_CONNECTED = 1,
-    WIFI_CONFIG_EVENT_DISCONNECTED = 2,
-} wifi_config_event_t;
-
-typedef void (*wifi_config_event_cb_t)(wifi_config_event_t event);
-
-void wifi_config_init(const char *ap_ssid, const char *ap_password, wifi_config_event_cb_t cb);
-void wifi_config_reset();
-void wifi_config_get(char *ssid, size_t ssid_len, char *password, size_t pass_len);
-void wifi_config_set(const char *ssid, const char *password);
-
-// Voor wifi scan in http_server
-typedef struct {
-    char ssid[33];
-    int8_t rssi;
-    uint8_t authmode;
-} scanned_ap_info_t;
-
-void wifi_config_get_scan_results(scanned_ap_info_t **list, size_t *count);
-const char* wifi_config_authmode_str(uint8_t authmode);
+ #pragma once
+void http_server_start(void);
+void http_server_stop(void);
