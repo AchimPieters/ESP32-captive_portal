@@ -1,6 +1,8 @@
 # ESP32-captive_portal
 ESP-IDF Captive Portal & WiFi Provisioning Component
 
+This project requires **ESP-IDF v5.2.4 or newer** to build.
+
 ## What it Does
 
 This component provides a complete captive portal with WiFi setup (including WiFi scanning!), DNS hijack, HTTP server, and mDNS (.local) for any ESP32 project.  
