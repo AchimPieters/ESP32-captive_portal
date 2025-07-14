@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESP32 WiFi Portal</title>
+  <meta name='viewport' content='width=device-width,initial-scale=1'>
+  <style>
+    body {
+      font-family: sans-serif;
+      max-width: 30em;
+      margin: auto;
+      padding: 2em;
+    }
+
+    label,
+    input {
+      display: block;
+      width: 100%;
+      margin-bottom: 1em;
+    }
+
+    ul {
+      padding: 0;
+      list-style: none;
+    }
+
+    li {
+      padding: 0.5em 0;
+      cursor: pointer;
+    }
+
+    li.secure::before {
+      content: '🔒 ';
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Select WiFi network</h1>
+  <button onclick='scanWifi()'>🔄 Opnieuw scannen</button>
+  <ul id='netlist'></ul>
+  <form method='POST' action='/settings' id='form'>
+    SSID:<br><input type='text' id='ssid' name='ssid' maxlength='32' required><br>
+    Wachtwoord:<br><input type='password' id='password' name='password' maxlength='64'><br>
+    <input type='submit' value='Verbinden'>
+  </form>
+  <script>
+    function scanWifi() {
+      fetch('/scan').then(r => r.json()).then(list => {
+        var ul = document.getElementById('netlist');
+        ul.innerHTML = '';
+        if (list.length == 0) ul.innerHTML = '<li>Geen netwerken gevonden</li>';
+        list.forEach(function(n) {
+          var li = document.createElement('li');
+          li.textContent = n.ssid + ' (' + n.rssi + 'dBm)';
+          li.className = n.authmode == 'open' ? 'unsecure' : 'secure';
+          li.onclick = function() {
+            document.getElementById('ssid').value = n.ssid;
+            document.getElementById('password').focus();
+          };
+          ul.appendChild(li);
+        });
+      });
+    }
+    scanWifi();
+  </script>
+  <p>Deze portal is ook bereikbaar via <b>http://esp32-setup.local/</b> (mDNS)</p>
+</body>
+
+</html>
