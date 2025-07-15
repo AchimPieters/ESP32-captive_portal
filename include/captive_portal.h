@@ -21,28 +21,44 @@
    for more information visit https://www.studiopieters.nl
  **/
 
- #pragma once
+#pragma once
 
- #include <stddef.h>   // size_t
- #include <stdint.h>   // int8_t, uint8_t
+#include <stddef.h>   // size_t
+#include <stdint.h>   // int8_t, uint8_t
 
- typedef enum {
-     WIFI_CONFIG_EVENT_CONNECTED = 1,
-     WIFI_CONFIG_EVENT_DISCONNECTED = 2,
- } wifi_config_event_t;
+// Event types for WiFi configuration status
+typedef enum {
+    WIFI_CONFIG_EVENT_CONNECTED = 1,
+    WIFI_CONFIG_EVENT_DISCONNECTED = 2,
+} wifi_config_event_t;
 
- typedef void (*wifi_config_event_cb_t)(wifi_config_event_t event);
+// Callback type for event notification
+typedef void (*wifi_config_event_cb_t)(wifi_config_event_t event);
 
- void wifi_config_init(const char *ap_ssid, const char *ap_password, wifi_config_event_cb_t cb);
- void wifi_config_reset();
- void wifi_config_get(char *ssid, size_t ssid_len, char *password, size_t pass_len);
- void wifi_config_set(const char *ssid, const char *password);
+// Start the WiFi configuration with optional AP password and event callback
+void wifi_config_init(const char *ap_ssid, const char *ap_password, wifi_config_event_cb_t cb);
 
- typedef struct {
-     char ssid[33];
-     int8_t rssi;
-     uint8_t authmode;
- } scanned_ap_info_t;
+// Clear stored WiFi credentials
+void wifi_config_reset();
 
- void wifi_config_get_scan_results(scanned_ap_info_t **list, size_t *count);
- const char* wifi_config_authmode_str(uint8_t authmode);
+// Retrieve stored SSID and password
+void wifi_config_get(char *ssid, size_t ssid_len, char *password, size_t pass_len);
+
+// Manually set SSID and password
+void wifi_config_set(const char *ssid, const char *password);
+
+// Scanned Access Point info structure
+typedef struct {
+    char ssid[33];
+    int8_t rssi;
+    uint8_t authmode;
+} scanned_ap_info_t;
+
+// Retrieve last scan results
+void wifi_config_get_scan_results(scanned_ap_info_t **list, size_t *count);
+
+// Convert authmode to readable string
+const char* wifi_config_authmode_str(uint8_t authmode);
+
+// captive portal start declaration
+void captive_portal_start(const char *ap_ssid, wifi_config_event_cb_t cb);
