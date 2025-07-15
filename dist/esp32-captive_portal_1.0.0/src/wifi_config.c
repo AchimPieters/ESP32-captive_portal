@@ -261,9 +261,9 @@ static void wifi_config_server_on_settings(client_t *client) {
     client_send_chunk(client, html_settings_header);
 
     if (context->custom_html != NULL && context->custom_html[0] > 0) {
-        uint8_t buffer_size = strlen(html_settings_custom_html) + strlen(context->custom_html); 
-        char* buffer = (char*) calloc(buffer_size, sizeof(char)); //fill up the buffer with zeros
-        snprintf(buffer, buffer_size, html_settings_custom_html, context->custom_html); //fill in template with the custom_html content
+        size_t buffer_size = strlen(html_settings_custom_html) + strlen(context->custom_html) + 1;
+        char* buffer = (char*) calloc(buffer_size, sizeof(char));
+        snprintf(buffer, buffer_size, html_settings_custom_html, context->custom_html);
         client_send_chunk(client, buffer);
         free(buffer);
     }
