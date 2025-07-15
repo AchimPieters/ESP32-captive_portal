@@ -1,43 +1,75 @@
-# ESP32-captive_portal
-ESP-IDF Captive Portal & WiFi Provisioning Component
+# esp-wifi-config
+Library component for ESP-IDF v5.4 to bootstrap WiFi-enabled
+accessories' WiFi configuration. The component has been fully
+updated for the ESP-IDF 5.4 API and requires this version of the
+framework.
 
-This project requires **ESP-IDF v5.2.4 or newer** to build.
+Library uses NVS to store configuration. When you initialize it, the library
+tries to connect to the configured WiFi network. If no configuration exists or
+the network is not available, it starts its own WiFi AP (with the given name and
+optional password). The AP runs a captive portal, so when the user connects to
+it a pop-up window is displayed asking to select one of the available WiFi
+networks (and a password if the network is secured) and configures the device to
+connect to that network.
 
-## What it Does
+After successful connection it calls the provided callback so you can continue
+accessory initialization.
 
-This component provides a complete captive portal with WiFi setup (including WiFi scanning!), DNS hijack, HTTP server, and mDNS (.local) for any ESP32 project.  
-Integrate in a single line—fully open source.
-
-### Features
-
-- Automatic AP/captive portal if no WiFi is configured
-- Network scan via `/scan` endpoint (returns JSON)
-- Choose SSID and enter password in web portal
-- HTTP server based on ESP-IDF component
-- DNS hijack (redirects any site to the portal)
-- mDNS (.local) support
-- Works on ESP32, ESP32-S2, ESP32-S3, ESP32-C3, ESP32-C6, and more
-- Fully usable as an ESP-IDF component
-
-## Usage
-
-Copy this folder to your `/components/` directory, or add it using the component manager.
-
-Include the library in your application:
+# Example: ::
 
 ```c
-#include "captive_portal.h"
+#include <stdio.h>
 
-void wifi_event_cb(wifi_config_event_t event) {
-    if (event == WIFI_CONFIG_EVENT_CONNECTED)
-        printf("WiFi connected!\n");
-    else if (event == WIFI_CONFIG_EVENT_DISCONNECTED)
-        printf("WiFi disconnected!\n");
+
+#include "wifi_config.h"
+
+
+void on_wifi_event(wifi_config_event_t event) {
+    if (event == WIFI_CONFIG_CONNECTED) {
+        printf("Connected to WiFi\n");
+    } else if (event == WIFI_CONFIG_DISCONNECTED) {
+        printf("Disconnected from WiFi\n");
+    }
 }
 
 void app_main(void) {
-    wifi_config_init("ESP32-Setup", NULL, wifi_event_cb);
-}
+    wifi_config_init2("my-accessory", "my-password", on_wifi_event);
 }
 ```
-StudioPieters® | Innovation and Learning Labs | https://www.studiopieters.nl
+
+# Custom HTML
+
+If you want a custom look, you can provide your own HTML for WiFi settings page.
+To do that, set the CMake variable `WIFI_CONFIG_INDEX_HTML` to the path of your
+custom HTML file when building the project.
+
+# UI Development
+
+UI content is located in content/index.html (which is actually Jinja2 template).
+To simplify UI development this there is a simple server you can use to see
+how HTML will be rendered. To run it, you will need Python runtime and Flask python
+package.
+
+    pip install flask
+
+Then run server with
+
+    tools/server.py
+
+and connect to http://localhost:5000/settings with your browser. That URL shows
+how settings page will look like with some combination of secure &amp; unsecure
+networks. http://localhost:5000/settings0 URL shows page when no WiFi networks
+could be found.
+
+On build template code will be split into parts (marked with `<!-- part PART_NAME
+-->` comments). In all parts all Jinja code blocks (`{% %}`) are removed and all
+output blocks (`{{ }}`) are replaced with `%s`. HTML_SETTINGS_HEADER and
+HTML_SETTINGS_FOOTER parts are output as-is while HTML_NETWORK_ITEM is assumed to
+have two `%s` placeholders, first of which will be "secure" or "unsecure" and
+second one - name of a WiFi network.
+
+To run server against your custom HTML, set environment variable
+WIFI_CONFIG_INDEX_HTML before your run tools/server.py:
+
+    export WIFI_CONFIG_INDEX_HTML=my_wifi_config.html
+    path/to/your/wifi-config/tools/server.py
