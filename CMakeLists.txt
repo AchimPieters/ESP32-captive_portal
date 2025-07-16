@@ -1,7 +1,7 @@
 idf_component_register(SRCS "src/wifi_config.c" "src/form_urlencoded.c"
                     INCLUDE_DIRS "include" "src"
                     PRIV_INCLUDE_DIRS "${CMAKE_CURRENT_BINARY_DIR}"
-                    REQUIRES esp_wifi esp_event esp_netif nvs_flash http_parser
+                    REQUIRES esp_wifi esp_event esp_netif nvs_flash http_parser esp_timer
 )
 
 # Allow projects to override the default HTML page

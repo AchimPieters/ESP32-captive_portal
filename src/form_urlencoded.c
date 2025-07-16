@@ -110,5 +110,3 @@ void form_params_free(form_param_t *params) {
         params = next;
     }
 }
-
-
