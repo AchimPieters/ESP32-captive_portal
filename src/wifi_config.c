@@ -48,6 +48,7 @@ typedef enum {
         ENDPOINT_INDEX,
         ENDPOINT_SETTINGS,
         ENDPOINT_SETTINGS_UPDATE,
+        ENDPOINT_CAPTIVE_DETECT,
 } endpoint_t;
 
 
@@ -149,8 +150,10 @@ static void client_send_chunk(client_t *client, const char *payload) {
 
 static void client_send_redirect(client_t *client, int code, const char *redirect_url) {
         DEBUG("Redirecting to %s", redirect_url);
-        char buffer[128];
-        size_t len = snprintf(buffer, sizeof(buffer), "HTTP/1.1 %d \r\nLocation: %s\r\nContent-Length: 0\r\nConnection: close\r\n\r\n", code, redirect_url);
+        char buffer[160];
+        size_t len = snprintf(buffer, sizeof(buffer),
+                              "HTTP/1.1 %d \r\nLocation: %s\r\nCaptive-Portal: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                              code, redirect_url);
         client_send(client, buffer, len);
 }
 
@@ -338,6 +341,12 @@ static int wifi_config_server_on_url(http_parser *parser, const char *data, size
         if (parser->method == HTTP_GET) {
                 if (!strncmp(data, "/settings", length)) {
                         client->endpoint = ENDPOINT_SETTINGS;
+                } else if (!strncmp(data, "/hotspot-detect.html", length)) {
+                        client->endpoint = ENDPOINT_CAPTIVE_DETECT;
+                } else if (!strncmp(data, "/library/test/success.html", length)) {
+                        client->endpoint = ENDPOINT_CAPTIVE_DETECT;
+                } else if (!strncmp(data, "/generate_204", length)) {
+                        client->endpoint = ENDPOINT_CAPTIVE_DETECT;
                 } else if (!strncmp(data, "/", length)) {
                         client->endpoint = ENDPOINT_INDEX;
                 }
@@ -385,6 +394,11 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
         case ENDPOINT_SETTINGS_UPDATE: {
                 DEBUG("POST /settings");
                 wifi_config_server_on_settings_update(client);
+                break;
+        }
+        case ENDPOINT_CAPTIVE_DETECT: {
+                DEBUG("GET captive portal detection");
+                client_send_redirect(client, 302, "http://192.168.4.1/settings");
                 break;
         }
         case ENDPOINT_UNKNOWN: {
