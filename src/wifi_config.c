@@ -359,14 +359,8 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
 
         switch(client->endpoint) {
         case ENDPOINT_INDEX: {
-                DEBUG("GET / -> sending landing page");
-                static const char index_page[] =
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/html; charset=UTF-8\r\n"
-                        "Content-Length: 39\r\n"
-                        "Connection: close\r\n\r\n"
-                        "<html><body>Wi-Fi Ready</body></html>";
-                client_send(client, index_page, sizeof(index_page) - 1);
+                DEBUG("GET / -> redirecting to /settings");
+                client_send_redirect(client, 301, "/settings");
                 break;
         }
         case ENDPOINT_SETTINGS: {
@@ -381,25 +375,12 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
         }
         case ENDPOINT_CAPTIVE_DETECT: {
                 DEBUG("GET captive portal detection");
-                static const char success_page[] =
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/html; charset=UTF-8\r\n"
-                        "Content-Length: 48\r\n"
-                        "Connection: close\r\n\r\n"
-                        "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>";
-
-                client_send(client, success_page, strlen(success_page));
+                client_send_redirect(client, 302, "http://192.168.4.1/settings");
                 break;
         }
         case ENDPOINT_UNKNOWN: {
-                DEBUG("Unknown endpoint -> sending landing page");
-                static const char index_page[] =
-                        "HTTP/1.1 200 OK\r\n"
-                        "Content-Type: text/html; charset=UTF-8\r\n"
-                        "Content-Length: 39\r\n"
-                        "Connection: close\r\n\r\n"
-                        "<html><body>Wi-Fi Ready</body></html>";
-                client_send(client, index_page, sizeof(index_page) - 1);
+                DEBUG("Unknown endpoint -> redirecting to http://192.168.4.1/settings");
+                client_send_redirect(client, 302, "http://192.168.4.1/settings");
                 break;
         }
         }
