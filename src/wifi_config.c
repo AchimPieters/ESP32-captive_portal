@@ -20,6 +20,7 @@
 
 #include "wifi_config.h"
 #include "form_urlencoded.h"
+#include "mdns.h"
 
 #define WIFI_CONFIG_SERVER_PORT 80
 
@@ -159,6 +160,17 @@ static void client_send_redirect(client_t *client, int code, const char *redirec
                               "HTTP/1.1 %d \r\nLocation: %s\r\nCaptive-Portal: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
                               code, redirect_url);
         client_send(client, buffer, len);
+}
+
+static void client_send_detect_ok(client_t *client) {
+        static const char payload[] =
+                "HTTP/1.1 200 OK\r\n"
+                "Content-Type: text/html\r\n"
+                "Content-Length: 34\r\n"
+                "Connection: close\r\n\r\n"
+                "<html>Captive Portal Active</html>";
+
+        client_send(client, payload, sizeof(payload) - 1);
 }
 
 
@@ -375,7 +387,7 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
         }
         case ENDPOINT_CAPTIVE_DETECT: {
                 DEBUG("GET captive portal detection");
-                client_send_redirect(client, 302, "http://192.168.4.1/settings");
+                client_send_detect_ok(client);
                 break;
         }
         case ENDPOINT_UNKNOWN: {
@@ -713,6 +725,11 @@ static void wifi_config_softap_start() {
         esp_netif_set_ip_info(ap_netif, &ap_ip);
         esp_netif_dhcps_start(ap_netif);
 
+        mdns_init();
+        mdns_hostname_set("esp32-captive");
+        mdns_instance_name_set("ESP32 Captive Portal");
+        mdns_service_add(NULL, "_http", "_tcp", WIFI_CONFIG_SERVER_PORT, NULL, 0);
+
         dns_start();
         http_start();
 }
@@ -720,6 +737,7 @@ static void wifi_config_softap_start() {
 
 static void wifi_config_softap_stop() {
         esp_netif_dhcps_stop(ap_netif);
+        mdns_free();
         dns_stop();
         http_stop();
         esp_wifi_set_mode(WIFI_MODE_STA);
