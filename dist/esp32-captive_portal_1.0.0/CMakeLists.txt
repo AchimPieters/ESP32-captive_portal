@@ -10,7 +10,7 @@ if(DEFINED WIFI_CONFIG_INDEX_HTML)
 else()
     set(html_file "${CMAKE_CURRENT_SOURCE_DIR}/content/index.html")
 endif()
-set(generated_file ${CMAKE_CURRENT_BINARY_DIR}/index.html.h)
+set(generated_file ${CMAKE_CURRENT_BINARY_DIR}/index.html)
 add_custom_command(OUTPUT ${generated_file}
     COMMAND python ${CMAKE_CURRENT_SOURCE_DIR}/tools/embed.py ${html_file} > ${generated_file}
     DEPENDS ${html_file}
