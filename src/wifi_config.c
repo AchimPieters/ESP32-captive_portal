@@ -675,10 +675,11 @@ static void wifi_config_softap_start() {
         wifi_config_t ap_config;
         memset(&ap_config, 0, sizeof(ap_config));
         ap_config.ap.channel = 6;
-        ap_config.ap.ssid_len = snprintf(
+        snprintf(
                 (char *)ap_config.ap.ssid, sizeof(ap_config.ap.ssid),
-                "%s-%02X%02X%02X", context->ssid_prefix, macaddr[3], macaddr[4], macaddr[5]
-                );
+                "%s-%02X%02X%02X", context->ssid_prefix,
+                macaddr[3], macaddr[4], macaddr[5]);
+        ap_config.ap.ssid_len = strlen((char *)ap_config.ap.ssid);
         ap_config.ap.ssid_hidden = 0;
         if (context->password) {
                 ap_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
