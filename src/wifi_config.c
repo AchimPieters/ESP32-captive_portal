@@ -592,8 +592,6 @@ static void dns_task(void *arg)
         const struct timeval timeout = { 2, 0 }; /* 2 second timeout */
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
-        const struct ifreq ifreq1 = { "en1" };
-        setsockopt(fd, SOL_SOCKET, SO_BINDTODEVICE, &ifreq1, sizeof(ifreq1));
 
         for (;;) {
                 char buffer[96];
@@ -601,50 +599,40 @@ static void dns_task(void *arg)
                 socklen_t src_addr_len = sizeof(src_addr);
                 size_t count = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&src_addr, &src_addr_len);
 
-                /* Drop messages that are too large to send a response in the buffer */
-                if (count > 0 && count <= sizeof(buffer) - 16 && src_addr.sa_family == AF_INET) {
+                if (count > 12 && src_addr.sa_family == AF_INET && buffer[2] == 0x01) {
+                        uint8_t *qname = (uint8_t *)buffer + 12;
                         size_t qname_len = 0;
-                        for (int i = 12; i < count && buffer[i] != 0; i++) {
-                                qname_len++;
-                        }
-                        qname_len += 1; // include null terminator
-                        uint32_t reply_len = 2 + 10 + qname_len + 16 + 4;
+                        while (12 + qname_len < count && qname[qname_len] != 0)
+                                qname_len += qname[qname_len] + 1;
+                        qname_len++;
 
-                        char *head = buffer + 2;
-                        *head++ = 0x80; // Flags
-                        *head++ = 0x00;
-                        *head++ = 0x00; // Q count
-                        *head++ = 0x01;
-                        *head++ = 0x00; // A count
-                        *head++ = 0x01;
-                        *head++ = 0x00; // Auth count
-                        *head++ = 0x00;
-                        *head++ = 0x00; // Add count
-                        *head++ = 0x00;
-                        head += qname_len;
-                        *head++ = 0x00; // Q type
-                        *head++ = 0x01;
-                        *head++ = 0x00; // Q class
-                        *head++ = 0x01;
-                        *head++ = 0xC0; // LBL offs
-                        *head++ = 0x0C;
-                        *head++ = 0x00; // Type
-                        *head++ = 0x01;
-                        *head++ = 0x00; // Class
-                        *head++ = 0x01;
-                        *head++ = 0x00; // TTL
-                        *head++ = 0x00;
-                        *head++ = 0x00;
-                        *head++ = 0x78;
-                        *head++ = 0x00; // RD len
-                        *head++ = 0x04;
-                        *head++ = ip4_addr1(&server_addr);
-                        *head++ = ip4_addr2(&server_addr);
-                        *head++ = ip4_addr3(&server_addr);
-                        *head++ = ip4_addr4(&server_addr);
+                        uint8_t response[512] = {0};
+                        size_t offset = 0;
+
+                        response[offset++] = buffer[0];
+                        response[offset++] = buffer[1];
+                        response[offset++] = 0x81;  // standard response
+                        response[offset++] = 0x80;
+                        response[offset++] = 0x00; response[offset++] = 0x01;
+                        response[offset++] = 0x00; response[offset++] = 0x01;
+                        response[offset++] = 0x00; response[offset++] = 0x00;
+                        response[offset++] = 0x00; response[offset++] = 0x00;
+
+                        memcpy(response + offset, buffer + 12, qname_len + 4);
+                        offset += qname_len + 4;
+
+                        response[offset++] = 0xC0; response[offset++] = 0x0C;
+                        response[offset++] = 0x00; response[offset++] = 0x01;
+                        response[offset++] = 0x00; response[offset++] = 0x01;
+                        response[offset++] = 0x00; response[offset++] = 0x00; response[offset++] = 0x00; response[offset++] = 0x3C;
+                        response[offset++] = 0x00; response[offset++] = 0x04;
+                        response[offset++] = ip4_addr1(&server_addr);
+                        response[offset++] = ip4_addr2(&server_addr);
+                        response[offset++] = ip4_addr3(&server_addr);
+                        response[offset++] = ip4_addr4(&server_addr);
 
                         DEBUG("Got DNS query, sending response");
-                        sendto(fd, buffer, reply_len, 0, &src_addr, src_addr_len);
+                        sendto(fd, response, offset, 0, &src_addr, src_addr_len);
                 }
 
                 uint32_t task_value = 0;
@@ -846,14 +834,14 @@ void wifi_config_start() {
                 esp_wifi_init(&cfg);
         }
 
-        esp_wifi_set_mode(WIFI_MODE_STA);
+        esp_wifi_set_mode(WIFI_MODE_APSTA);
         esp_wifi_start();
+
+        wifi_config_softap_start();
 
         context->first_time = true;
 
-        if (wifi_config_station_connect()) {
-                wifi_config_softap_start();
-        }
+        wifi_config_station_connect();
 
         const esp_timer_create_args_t t_args = {
                 .callback = wifi_config_monitor_callback,
