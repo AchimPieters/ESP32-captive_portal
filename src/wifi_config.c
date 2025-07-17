@@ -42,6 +42,19 @@
 #define DEBUG(message, ...)
 #endif
 
+/*
+ * When the build system fails to embed the HTML page used for the Wi-Fi
+ * configuration portal, the linker will report unresolved references to the
+ * symbols generated for the embedded file.  Provide weak fallbacks so the
+ * component can still be linked, even if the HTML was not embedded.
+ */
+#ifndef _binary_content_index_html_start
+const uint8_t index_html_start[] asm("_binary_content_index_html_start")
+    __attribute__((weak)) = {0};
+const uint8_t index_html_end[] asm("_binary_content_index_html_end")
+    __attribute__((weak)) = {0};
+#endif
+
 
 typedef enum {
         ENDPOINT_UNKNOWN = 0,
