@@ -375,7 +375,14 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
         }
         case ENDPOINT_CAPTIVE_DETECT: {
                 DEBUG("GET captive portal detection");
-                client_send_redirect(client, 302, "http://192.168.4.1/settings");
+                static const char success_page[] =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/html; charset=UTF-8\r\n"
+                        "Content-Length: 48\r\n"
+                        "Connection: close\r\n\r\n"
+                        "<HTML><HEAD><TITLE>Success</TITLE></HEAD><BODY>Success</BODY></HTML>";
+
+                client_send(client, success_page, strlen(success_page));
                 break;
         }
         case ENDPOINT_UNKNOWN: {
@@ -596,7 +603,11 @@ static void dns_task(void *arg)
 
                 /* Drop messages that are too large to send a response in the buffer */
                 if (count > 0 && count <= sizeof(buffer) - 16 && src_addr.sa_family == AF_INET) {
-                        size_t qname_len = strlen(buffer + 12) + 1;
+                        size_t qname_len = 0;
+                        for (int i = 12; i < count && buffer[i] != 0; i++) {
+                                qname_len++;
+                        }
+                        qname_len += 1; // include null terminator
                         uint32_t reply_len = 2 + 10 + qname_len + 16 + 4;
 
                         char *head = buffer + 2;
