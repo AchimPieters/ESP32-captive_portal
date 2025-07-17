@@ -151,15 +151,6 @@ static void client_send(client_t *client, const char *payload, size_t payload_si
 }
 
 
-static void client_send_chunk(client_t *client, const char *payload) {
-        int len = strlen(payload);
-        char buffer[10];
-        int buffer_len = snprintf(buffer, sizeof(buffer), "%x\r\n", len);
-        client_send(client, buffer, buffer_len);
-        client_send(client, payload, len);
-        client_send(client, "\r\n", 2);
-}
-
 
 static void client_send_redirect(client_t *client, int code, const char *redirect_url) {
         DEBUG("Redirecting to %s", redirect_url);
