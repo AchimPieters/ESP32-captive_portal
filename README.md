@@ -73,3 +73,9 @@ WIFI_CONFIG_INDEX_HTML before your run tools/server.py:
 
     export WIFI_CONFIG_INDEX_HTML=my_wifi_config.html
     path/to/your/wifi-config/tools/server.py
+
+## SoftAP SSID length
+
+The automatically generated SoftAP SSID is limited to 32 characters. Ensure that
+`wifi_config_init()` or `wifi_config_init2()` is called with an `ssid_prefix`
+short enough so that the full SSID fits within this limit.
