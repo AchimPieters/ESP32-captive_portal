@@ -707,6 +707,8 @@ static void wifi_config_softap_start() {
         IP4_ADDR(&ap_ip.ip, 192, 168, 4, 1);
         IP4_ADDR(&ap_ip.netmask, 255, 255, 255, 0);
         IP4_ADDR(&ap_ip.gw, 0, 0, 0, 0);
+        esp_netif_dns_info_t dns_info = { .ip = ESP_IP4ADDR_INIT(192, 168, 4, 1) };
+        esp_netif_set_dns_info(ap_netif, ESP_NETIF_DNS_MAIN, &dns_info);
         esp_netif_dhcps_stop(ap_netif);
         esp_netif_set_ip_info(ap_netif, &ap_ip);
         esp_netif_dhcps_start(ap_netif);

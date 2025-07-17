@@ -79,3 +79,9 @@ WIFI_CONFIG_INDEX_HTML before your run tools/server.py:
 The automatically generated SoftAP SSID is limited to 32 characters. Ensure that
 `wifi_config_init()` or `wifi_config_init2()` is called with an `ssid_prefix`
 short enough so that the full SSID fits within this limit.
+
+## Captive portal compatibility
+
+The DHCP server now advertises the device as the DNS server (192.168.4.1) to
+connected clients. This improves automatic captive portal detection on iOS and
+macOS devices.
