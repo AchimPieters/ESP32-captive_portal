@@ -359,8 +359,14 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
 
         switch(client->endpoint) {
         case ENDPOINT_INDEX: {
-                DEBUG("GET / -> redirecting to /settings");
-                client_send_redirect(client, 301, "/settings");
+                DEBUG("GET / -> sending landing page");
+                static const char index_page[] =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/html; charset=UTF-8\r\n"
+                        "Content-Length: 39\r\n"
+                        "Connection: close\r\n\r\n"
+                        "<html><body>Wi-Fi Ready</body></html>";
+                client_send(client, index_page, sizeof(index_page) - 1);
                 break;
         }
         case ENDPOINT_SETTINGS: {
@@ -386,8 +392,14 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
                 break;
         }
         case ENDPOINT_UNKNOWN: {
-                DEBUG("Unknown endpoint -> redirecting to http://192.168.4.1/settings");
-                client_send_redirect(client, 302, "http://192.168.4.1/settings");
+                DEBUG("Unknown endpoint -> sending landing page");
+                static const char index_page[] =
+                        "HTTP/1.1 200 OK\r\n"
+                        "Content-Type: text/html; charset=UTF-8\r\n"
+                        "Content-Length: 39\r\n"
+                        "Connection: close\r\n\r\n"
+                        "<html><body>Wi-Fi Ready</body></html>";
+                client_send(client, index_page, sizeof(index_page) - 1);
                 break;
         }
         }
@@ -573,6 +585,7 @@ static void http_stop() {
 }
 
 
+
 static void dns_task(void *arg)
 {
         INFO("Starting DNS server");
@@ -583,56 +596,76 @@ static void dns_task(void *arg)
         struct sockaddr_in serv_addr;
         int fd = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-        memset(&serv_addr, '0', sizeof(serv_addr));
+        memset(&serv_addr, 0, sizeof(serv_addr));
         serv_addr.sin_family = AF_INET;
         serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
         serv_addr.sin_port = htons(53);
         bind(fd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
 
-        const struct timeval timeout = { 2, 0 }; /* 2 second timeout */
+        const struct timeval timeout = { 2, 0 };
         setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
-
         for (;;) {
-                char buffer[96];
-                struct sockaddr src_addr;
+                uint8_t buffer[512];
+                struct sockaddr_in src_addr;
                 socklen_t src_addr_len = sizeof(src_addr);
-                size_t count = recvfrom(fd, buffer, sizeof(buffer), 0, (struct sockaddr*)&src_addr, &src_addr_len);
+                int count = recvfrom(fd, buffer, sizeof(buffer), 0,
+                                    (struct sockaddr*)&src_addr, &src_addr_len);
 
-                if (count > 12 && src_addr.sa_family == AF_INET && buffer[2] == 0x01) {
-                        uint8_t *qname = (uint8_t *)buffer + 12;
-                        size_t qname_len = 0;
-                        while (12 + qname_len < count && qname[qname_len] != 0)
-                                qname_len += qname[qname_len] + 1;
-                        qname_len++;
+                if (count >= 12) {
+                        struct dns_header {
+                                uint16_t id;
+                                uint16_t flags;
+                                uint16_t qdcount;
+                                uint16_t ancount;
+                                uint16_t nscount;
+                                uint16_t arcount;
+                        } __attribute__((packed));
 
-                        uint8_t response[512] = {0};
-                        size_t offset = 0;
+                        struct dns_header *hdr = (struct dns_header *)buffer;
+                        if (ntohs(hdr->qdcount) >= 1) {
+                                int offset = sizeof(struct dns_header);
+                                while (offset < count && buffer[offset] != 0)
+                                        offset += buffer[offset] + 1;
+                                offset += 5;
+                                if (offset <= count) {
+                                        uint8_t response[512];
+                                        struct dns_header *resp = (struct dns_header *)response;
+                                        resp->id = hdr->id;
+                                        resp->flags = htons(0x8180);
+                                        resp->qdcount = htons(1);
+                                        resp->ancount = htons(1);
+                                        resp->nscount = 0;
+                                        resp->arcount = 0;
 
-                        response[offset++] = buffer[0];
-                        response[offset++] = buffer[1];
-                        response[offset++] = 0x81;  // standard response
-                        response[offset++] = 0x80;
-                        response[offset++] = 0x00; response[offset++] = 0x01;
-                        response[offset++] = 0x00; response[offset++] = 0x01;
-                        response[offset++] = 0x00; response[offset++] = 0x00;
-                        response[offset++] = 0x00; response[offset++] = 0x00;
+                                        int resp_len = sizeof(struct dns_header);
+                                        memcpy(response + resp_len,
+                                               buffer + sizeof(struct dns_header),
+                                               offset - sizeof(struct dns_header));
+                                        resp_len += offset - sizeof(struct dns_header);
 
-                        memcpy(response + offset, buffer + 12, qname_len + 4);
-                        offset += qname_len + 4;
+                                        response[resp_len++] = 0xC0;
+                                        response[resp_len++] = 0x0C;
+                                        response[resp_len++] = 0x00;
+                                        response[resp_len++] = 0x01;
+                                        response[resp_len++] = 0x00;
+                                        response[resp_len++] = 0x01;
+                                        response[resp_len++] = 0x00;
+                                        response[resp_len++] = 0x00;
+                                        response[resp_len++] = 0x00;
+                                        response[resp_len++] = 0x3C;
+                                        response[resp_len++] = 0x00;
+                                        response[resp_len++] = 0x04;
+                                        response[resp_len++] = ip4_addr1(&server_addr);
+                                        response[resp_len++] = ip4_addr2(&server_addr);
+                                        response[resp_len++] = ip4_addr3(&server_addr);
+                                        response[resp_len++] = ip4_addr4(&server_addr);
 
-                        response[offset++] = 0xC0; response[offset++] = 0x0C;
-                        response[offset++] = 0x00; response[offset++] = 0x01;
-                        response[offset++] = 0x00; response[offset++] = 0x01;
-                        response[offset++] = 0x00; response[offset++] = 0x00; response[offset++] = 0x00; response[offset++] = 0x3C;
-                        response[offset++] = 0x00; response[offset++] = 0x04;
-                        response[offset++] = ip4_addr1(&server_addr);
-                        response[offset++] = ip4_addr2(&server_addr);
-                        response[offset++] = ip4_addr3(&server_addr);
-                        response[offset++] = ip4_addr4(&server_addr);
-
-                        DEBUG("Got DNS query, sending response");
-                        sendto(fd, response, offset, 0, &src_addr, src_addr_len);
+                                        DEBUG("Got DNS query, sending response");
+                                        sendto(fd, response, resp_len, 0,
+                                               (struct sockaddr *)&src_addr, src_addr_len);
+                                }
+                        }
                 }
 
                 uint32_t task_value = 0;
@@ -648,7 +681,6 @@ static void dns_task(void *arg)
 
         vTaskDelete(NULL);
 }
-
 
 static void dns_start() {
         xTaskCreate(dns_task, "wifi_config DNS", 4096, NULL, 2, &context->dns_task_handle);
@@ -688,13 +720,15 @@ static void wifi_config_softap_start() {
                 ap_config.ap.authmode = WIFI_AUTH_OPEN;
         }
 
-        ap_config.ap.max_connection = 2;
-        ap_config.ap.beacon_interval = 50;
+        ap_config.ap.max_connection = 4;
+        ap_config.ap.beacon_interval = 100;
         esp_wifi_set_max_tx_power(78);
 
         DEBUG("Starting AP SSID=%s", (char *)ap_config.ap.ssid);
 
         esp_wifi_set_config(WIFI_IF_AP, &ap_config);
+
+        dns_start();
 
         wifi_networks_mutex = xSemaphoreCreateBinary();
         xSemaphoreGive(wifi_networks_mutex);
@@ -712,7 +746,6 @@ static void wifi_config_softap_start() {
         esp_netif_set_ip_info(ap_netif, &ap_ip);
         esp_netif_dhcps_start(ap_netif);
 
-        dns_start();
         http_start();
 }
 
@@ -838,6 +871,8 @@ void wifi_config_start() {
         esp_wifi_start();
 
         wifi_config_softap_start();
+
+        vTaskDelay(3000 / portTICK_PERIOD_MS);
 
         context->first_time = true;
 
