@@ -85,3 +85,5 @@ short enough so that the full SSID fits within this limit.
 The DHCP server now advertises the device as the DNS server (192.168.4.1) to
 connected clients. This improves automatic captive portal detection on iOS and
 macOS devices.
+
+On macOS Sequoia systems the automatic popup might not appear immediately. If this happens, open http://192.168.4.1 in your browser to access the configuration portal.
