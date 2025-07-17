@@ -316,15 +316,15 @@ static int wifi_config_server_on_url(http_parser *parser, const char *data, size
 
         client->endpoint = ENDPOINT_UNKNOWN;
         if (parser->method == HTTP_GET) {
-                if (!strncmp(data, "/settings", length)) {
+                if (!strncmp(data, "/settings", strlen("/settings"))) {
                         client->endpoint = ENDPOINT_SETTINGS;
-                } else if (!strncmp(data, "/hotspot-detect.html", length)) {
+                } else if (!strncmp(data, "/hotspot-detect.html", strlen("/hotspot-detect.html"))) {
                         client->endpoint = ENDPOINT_CAPTIVE_DETECT;
-                } else if (!strncmp(data, "/library/test/success.html", length)) {
+                } else if (!strncmp(data, "/library/test/success.html", strlen("/library/test/success.html"))) {
                         client->endpoint = ENDPOINT_CAPTIVE_DETECT;
-                } else if (!strncmp(data, "/generate_204", length)) {
+                } else if (!strncmp(data, "/generate_204", strlen("/generate_204"))) {
                         client->endpoint = ENDPOINT_CAPTIVE_DETECT;
-                } else if (!strncmp(data, "/", length)) {
+                } else if (!strncmp(data, "/", strlen("/"))) {
                         client->endpoint = ENDPOINT_INDEX;
                 }
         } else if (parser->method == HTTP_POST) {
