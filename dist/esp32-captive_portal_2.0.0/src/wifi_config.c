@@ -246,7 +246,7 @@ static void wifi_scan_task(void *arg)
     vTaskDelete(NULL);
 }
 
-#include "index.html.h"
+#include "index.html"
 
 static void wifi_config_server_on_settings(client_t *client) {
     static const char http_prologue[] =
