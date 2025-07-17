@@ -249,49 +249,22 @@ static void wifi_scan_task(void *arg)
         vTaskDelete(NULL);
 }
 
-#include "index.html"
+
 
 static void wifi_config_server_on_settings(client_t *client) {
+        extern const uint8_t index_html_start[] asm("_binary_content_index_html_start");
+        extern const uint8_t index_html_end[] asm("_binary_content_index_html_end");
+
+        size_t html_len = index_html_end - index_html_start;
+
         static const char http_prologue[] =
-                "HTTP/1.1 200 \r\n"
+                "HTTP/1.1 200 OK\r\n"
                 "Content-Type: text/html; charset=utf-8\r\n"
                 "Cache-Control: no-store\r\n"
-                "Transfer-Encoding: chunked\r\n"
-                "Connection: close\r\n"
-                "\r\n";
+                "Connection: close\r\n\r\n";
 
-        client_send(client, http_prologue, sizeof(http_prologue)-1);
-        client_send_chunk(client, html_settings_header);
-
-        if (context->custom_html != NULL && context->custom_html[0] > 0) {
-                uint8_t buffer_size = strlen(html_settings_custom_html) + strlen(context->custom_html);
-                char* buffer = (char*) calloc(buffer_size, sizeof(char)); //fill up the buffer with zeros
-                snprintf(buffer, buffer_size, html_settings_custom_html, context->custom_html); //fill in template with the custom_html content
-                client_send_chunk(client, buffer);
-                free(buffer);
-        }
-
-        client_send_chunk(client, html_settings_body);
-
-        if (xSemaphoreTake(wifi_networks_mutex, 5000 / portTICK_PERIOD_MS)) {
-                char buffer[64];
-                wifi_network_info_t *net = wifi_networks;
-                while (net) {
-                        snprintf(
-                                buffer, sizeof(buffer),
-                                html_network_item,
-                                net->secure ? "secure" : "unsecure", net->ssid
-                                );
-                        client_send_chunk(client, buffer);
-
-                        net = net->next;
-                }
-
-                xSemaphoreGive(wifi_networks_mutex);
-        }
-
-        client_send_chunk(client, html_settings_footer);
-        client_send_chunk(client, "");
+        client_send(client, http_prologue, sizeof(http_prologue) - 1);
+        client_send(client, (const char *)index_html_start, html_len);
 }
 
 
