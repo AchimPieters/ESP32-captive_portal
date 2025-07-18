@@ -179,8 +179,9 @@ static void wifi_scan_task(void *arg);
 static void wifi_scan_task(void *arg)
 {
         INFO("Starting WiFi scan");
+        INFO("Waiting 10000ms before first scan to keep AP visible");
         /* Allow the AP to fully come up before scanning to avoid missing beacons */
-        vTaskDelay(5000 / portTICK_PERIOD_MS);
+        vTaskDelay(10000 / portTICK_PERIOD_MS);
         while (true)
         {
                 wifi_mode_t mode;
@@ -201,6 +202,7 @@ static void wifi_scan_task(void *arg)
 
                 uint16_t ap_num = 0;
                 esp_wifi_scan_get_ap_num(&ap_num);
+                DEBUG("WiFi scan completed, %d APs found", ap_num);
                 wifi_ap_record_t *ap_records = calloc(ap_num, sizeof(wifi_ap_record_t));
                 if (ap_records) {
                         esp_wifi_scan_get_ap_records(&ap_num, ap_records);
@@ -233,6 +235,7 @@ static void wifi_scan_task(void *arg)
                                         net->secure = rec->authmode != WIFI_AUTH_OPEN;
                                         net->next = wifi_networks;
                                         wifi_networks = net;
+                                        DEBUG("Found AP: %s (%s)", net->ssid, net->secure ? "secure" : "open");
                                 }
                         }
 
@@ -319,6 +322,8 @@ static void wifi_config_server_on_settings_update(client_t *client) {
 
 static int wifi_config_server_on_url(http_parser *parser, const char *data, size_t length) {
         client_t *client = (client_t*) parser->data;
+
+        DEBUG("HTTP request line: %s %.*s", http_method_str(parser->method), (int)length, data);
 
         client->endpoint = ENDPOINT_UNKNOWN;
         if (parser->method == HTTP_GET) {
@@ -464,6 +469,7 @@ static void http_task(void *arg) {
                 if (FD_ISSET(listenfd, &read_fds)) {
                         int fd = accept(listenfd, (struct sockaddr *)NULL, (socklen_t *)NULL);
                         if (fd > 0) {
+                                DEBUG("Accepted HTTP client on fd %d", fd);
                                 const struct timeval timeout = { 2, 0 }; /* 2 second timeout */
                                 setsockopt(fd, SOL_SOCKET, SO_RCVTIMEO, &timeout, sizeof(timeout));
 
@@ -612,6 +618,22 @@ static void dns_task(void *arg)
                         struct dns_header *hdr = (struct dns_header *)buffer;
                         if (ntohs(hdr->qdcount) >= 1) {
                                 int offset = sizeof(struct dns_header);
+                                char domain[128];
+                                int pos = 0;
+                                while (offset < count && buffer[offset] != 0) {
+                                        int len = buffer[offset++];
+                                        if (offset + len > count || pos + len + 1 >= sizeof(domain))
+                                                break;
+                                        memcpy(domain + pos, buffer + offset, len);
+                                        pos += len;
+                                        domain[pos++] = '.';
+                                        offset += len;
+                                }
+                                if (pos > 0)
+                                        domain[pos - 1] = '\0';
+                                else
+                                        domain[0] = '\0';
+                                DEBUG("DNS query for %s", domain);
                                 while (offset < count && buffer[offset] != 0)
                                         offset += buffer[offset] + 1;
                                 offset += 5;
@@ -684,6 +706,7 @@ static void dns_stop() {
 
 static void wifi_config_softap_start() {
         INFO("Starting AP mode");
+        DEBUG("Configuring SoftAP");
 
         esp_wifi_set_mode(WIFI_MODE_APSTA);
 
@@ -738,6 +761,7 @@ static void wifi_config_softap_start() {
 
 
 static void wifi_config_softap_stop() {
+        INFO("Stopping AP mode");
         esp_netif_dhcps_stop(ap_netif);
         dns_stop();
         http_stop();
@@ -746,6 +770,7 @@ static void wifi_config_softap_stop() {
 
 
 static void wifi_config_monitor_callback(void *arg) {
+        DEBUG("Monitoring WiFi connection state");
         wifi_ap_record_t ap;
         if (esp_wifi_sta_get_ap_info(&ap) == ESP_OK) {
                 wifi_mode_t mode;
@@ -755,6 +780,7 @@ static void wifi_config_monitor_callback(void *arg) {
 
                 // Connected to station, all is dandy
                 INFO("Connected to WiFi network");
+                DEBUG("Switching to STA mode only");
 
                 wifi_config_softap_stop();
                 esp_wifi_clear_fast_connect();
@@ -780,6 +806,7 @@ static void wifi_config_monitor_callback(void *arg) {
                         return;
 
                 INFO("Disconnected from WiFi network");
+                DEBUG("Re-enabling SoftAP for configuration");
 
                 if (!context->first_time && context->on_event)
                         context->on_event(WIFI_CONFIG_DISCONNECTED);
@@ -833,6 +860,7 @@ static int wifi_config_station_connect() {
         esp_wifi_set_config(WIFI_IF_STA, &sta_config);
 
         esp_wifi_connect();
+        DEBUG("esp_wifi_connect called");
         esp_wifi_clear_fast_connect();
 
         free(wifi_ssid);
