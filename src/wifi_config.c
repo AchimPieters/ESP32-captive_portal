@@ -277,6 +277,16 @@ static void wifi_config_server_on_settings(client_t *client) {
                 "Connection: close\r\n\r\n";
 
         client_send(client, http_prologue, sizeof(http_prologue) - 1);
+
+        if (html_len == 0) {
+                static const char error_page[] =
+                        "<html><body><h1>Missing index.html</h1>"
+                        "<p>The captive portal page was not embedded. "
+                        "Build with ESP-IDF 5.4 or later."</p></body></html>";
+                client_send(client, error_page, sizeof(error_page) - 1);
+                return;
+        }
+
         client_send(client, (const char *)index_html_start, html_len);
 }
 
