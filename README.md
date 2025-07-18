@@ -86,3 +86,8 @@ The DHCP server now advertises the device as the DNS server (192.168.4.1) to
 connected clients. This ensures automatic captive portal detection on iOS and
 macOS. The Captive Network Assistant window should open automatically on all
 modern Apple devices.
+
+Recent releases delay Wi‑Fi scanning for a few seconds after enabling the
+SoftAP and reduce the scan frequency. This keeps the access point visible to
+devices such as the Apple Studio M2 running macOS Sequoia and helps the captive
+portal appear immediately.
