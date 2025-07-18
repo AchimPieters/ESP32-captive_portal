@@ -154,9 +154,9 @@ static void client_send(client_t *client, const char *payload, size_t payload_si
 
 static void client_send_redirect(client_t *client, int code, const char *redirect_url) {
         DEBUG("Redirecting to %s", redirect_url);
-        char buffer[160];
+        char buffer[200];
         size_t len = snprintf(buffer, sizeof(buffer),
-                              "HTTP/1.1 %d \r\nLocation: %s\r\nCaptive-Portal: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
+                              "HTTP/1.1 %d \r\nLocation: %s\r\nCache-Control: no-store\r\nCaptive-Portal: true\r\nContent-Length: 0\r\nConnection: close\r\n\r\n",
                               code, redirect_url);
         client_send(client, buffer, len);
 }
@@ -179,6 +179,8 @@ static void wifi_scan_task(void *arg);
 static void wifi_scan_task(void *arg)
 {
         INFO("Starting WiFi scan");
+        /* Allow the AP to fully come up before scanning to avoid missing beacons */
+        vTaskDelay(5000 / portTICK_PERIOD_MS);
         while (true)
         {
                 wifi_mode_t mode;
@@ -190,8 +192,11 @@ static void wifi_scan_task(void *arg)
                         .ssid = NULL,
                         .bssid = NULL,
                         .channel = 0,
-                        .show_hidden = true
+                        .show_hidden = true,
+                        .scan_type = WIFI_SCAN_TYPE_ACTIVE,
                 };
+                scan_config.scan_time.active.min = 100;
+                scan_config.scan_time.active.max = 150;
                 esp_wifi_scan_start(&scan_config, true);
 
                 uint16_t ap_num = 0;
@@ -235,7 +240,8 @@ static void wifi_scan_task(void *arg)
                         free(ap_records);
                 }
 
-                vTaskDelay(10000 / portTICK_PERIOD_MS);
+                /* Scan infrequently to keep the SoftAP visible */
+                vTaskDelay(60000 / portTICK_PERIOD_MS);
         }
 
         xSemaphoreTake(wifi_networks_mutex, portMAX_DELAY);
