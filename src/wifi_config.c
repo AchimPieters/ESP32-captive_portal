@@ -385,8 +385,8 @@ static int wifi_config_server_on_message_complete(http_parser *parser) {
                 break;
         }
         case ENDPOINT_CAPTIVE_DETECT: {
-                DEBUG("GET captive portal detection");
-                client_send_redirect(client, 302, "http://192.168.4.1/settings");
+                DEBUG("GET captive portal detection -> serving index.html");
+                wifi_config_server_on_settings(client);
                 break;
         }
         case ENDPOINT_UNKNOWN: {
