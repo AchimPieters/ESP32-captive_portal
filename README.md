@@ -4,6 +4,10 @@ accessories' WiFi configuration. The component has been fully
 updated for the ESP-IDF 5.4 API and requires this version of the
 framework.
 
+If the captive portal page appears blank, the HTML template was not
+embedded into the firmware. Build the project with ESP-IDF **5.4 or
+later** so CMake can embed `content/index.html` automatically.
+
 Library uses NVS to store configuration. When you initialize it, the library
 tries to connect to the configured WiFi network. If no configuration exists or
 the network is not available, it starts its own WiFi AP (with the given name and
